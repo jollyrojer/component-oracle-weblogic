@@ -1,82 +1,84 @@
 application:
   configuration:
+    input.os: {image: "us-east-1/ami-c49c0dac", identity: "Administrator", type: "windows"}
+    input.windows-password: "qwerty12!"
+    input.instance-size: "m1.xlarge"
+    input.instance-prefix: "Weblogic"
+    input.mirror: "http://adp-repo.s3-website-us-east-1.amazonaws.com/cygwin"
+    input.packages: "openssh,curl,util-linux,procps,wget,unzip"
     input.weblogic-user: "weblogic"
     input.weblogic-user-password: "123QweAsd"
-    input.weblogic-binary-url: "https://s3.amazonaws.com/ab-atg/wls1036_generic.jar"
+    input.weblogic-binary-url: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/deps/Weblogic/wls1036_generic.jar"
     input.jrokit-binary-url: "https://s3.amazonaws.com/ab-atg/jrockit-jdk1.6.0_45-R28.2.7-4.1.0-linux-x64.bin"
-    #input.os: {image: "us-east-1/ami-ee698586", identity: "root" } #CentOS-6.5
-    input.os: {image: "us-east-1/ami-7a661812", identity: "root" } #RHEL-5.11
-    input.instance-size: "m1.xlarge"
-    input.recipe-url: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-oracle-weblogic-cookbooks-stable-bc275ec.tar.gz"
-    input.installation-dir: "/opt/middleware"
-    input.tmp-dir: "/tmp"
+    input.recipe-url: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-oracle-weblogic-cookbooks-stable-070b3c8.tar.gz"
+    input.java-binary-url: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/deps/Weblogic/jdk-7u75-windows-x64.exe"
 
   interfaces:
     input:
+      os: "bind(workflow#input.os)"
+      windows-password: "bind(workflow#input.windows-password)"
+      instance-size: "bind(workflow#input.instance-size)"
+      instance-prefix: "bind(workflow#input.instance-prefix)"
+      mirror: "bind(workflow#input.mirror)"
+      packages: "bind(workflow#input.packages)"
       weblogic-user: "bind(workflow#input.weblogic-user)"
       weblogic-user-password: "bind(workflow#input.weblogic-user-password)"
       weblogic-binary-url: "bind(workflow#input.weblogic-binary-url)"
       jrokit-binary-url: "bind(workflow#input.jrokit-binary-url)"
-      os: "bind(workflow#input.os)"
-      instance-size: "bind(workflow#input.instance-size)"
       recipe-url: "bind(workflow#input.recipe-url)"
-      installation-dir: "bind(workflow#input.installation-dir)"
-      tmp-dir: "bind(workflow#input.tmp-dir)"
+      java-binary-url: "bind(workflow#input.java-binary-url)"
     output:
       wl-hosts: "bind(workflow#result.wl-hosts)"
       wl-port: "bind(workflow#result.wl-admin-port)"
       wl-console: "bind(workflow#result.wl-console)"
       wl-hostname: "bind(workflow#result.wl-hostname)"
+    app-meta:
+      application-pic: "bind(metadata#output.application-pic)"
 
   components:
+    metadata:
+      type: cobalt.common.Constants
+      interfaces:
+        output:
+          application-pic: { type: "publish-signal(map<string, object>)", name: "Logo" }
+      configuration:
+        configuration.values:
+          output.application-pic:
+            large: "https://s3.amazonaws.com/qubell-images/oracle-weblogic.png"
+            small: "https://s3.amazonaws.com/qubell-images/oracle-weblogic-small.png"
+            small-height: 23
     workflow:
       type: workflow.Instance
       interfaces:
         input:
-          weblogic-user: { type: configuration(string), name: Weblogic administrator user }
-          weblogic-user-password: { type: configuration(string), name: Weblogic administrator user password }
-          weblogic-binary-url: { type: configuration(string), name: Weblogic binary URL }
-          jrokit-binary-url: { type: configuration(string), name: JRokit binary URL }
-          os:
-            type: configuration(map<string,object>)
-            name: Operating System
-            suggestions:
-              "CentOS-6.5": {image: "us-east-1/ami-ee698586", identity: "root" }
-              "RHEL-5.11": {image: "us-east-1/ami-7a661812", identity: "root" }
-          instance-size: { type: configuration(string), name: AWS EC2 instance type }
-          recipe-url: { type: configuration(string), name: Weblogic chef cookbooks URL }
-          installation-dir: { type: configuration(string), name: Weblogic installation path }
-          tmp-dir: { type: configuration(string), name: Path to tmp directory }
+          os:                     
+                                    type: "configuration(map<string,object>)"
+                                    name: "OS type"
+                                    suggestions:
+                                      "Windows-2008R2-east": { image: "us-east-1/ami-c49c0dac", identity: "Administrator", type: "windows" }
+                                      "CentOS-6.5":          { image: "us-east-1/ami-ee698586", identity: "root",          type: "linux"   }
+                                      "RHEL-5.11":           { image: "us-east-1/ami-7a661812", identity: "root",          type: "linux"   }
+
+          windows-password:       { type: configuration(string), name: "Windows administrator password"   }
+          instance-prefix:        { type: configuration(string), name: "AWS tag prefix"                   }
+          mirror:                 { type: configuration(string), name: "Cygwin installation binary URL"   }
+          packages:               { type: configuration(string), name: "Cygwin pacakages to install"      }
+          weblogic-user:          { type: configuration(string), name: "WebLogic admin username"          }
+          weblogic-user-password: { type: configuration(string), name: "WebLogic admin usernam"           }
+          weblogic-binary-url:    { type: configuration(string), name: "WebLogic installation binary URL" }
+          jrokit-binary-url:      { type: configuration(string), name: "JRokit installation binary URL"   }
+          instance-size:          { type: configuration(string), name: "EC2 instance size"                }
+          recipe-url:             { type: configuration(string), name: "Cookbooks URL"                    }
+          java-binary-url:        { type: configuration(string), name: "Java installation binary URL"}
         result:
-          wl-hosts: { type: publish-signal(list<string>), name: Weblogic hosts }
-          wl-admin-port: { type: publish-signal(string), name: Weblogic administration console port }
-          wl-console: { type: publish-signal(string), name: Weblogic administration console URL }
-          wl-hostname: { type: publish-signal(string), name: Weblogic FQDN }
+          wl-hosts:      { type: publish-signal(list<string>), name: "WebLogic host"         }
+          wl-admin-port: { type: publish-signal(string),       name: "WebLogic console port" }
+          wl-console:    { type: publish-signal(string),       name: "WebLogic console"      }
+          wl-hostname:   { type: publish-signal(string),       name: "WebLogic hostname"     }
 
       configuration:
         configuration.workflows:
           launch:
-            parameters:
-              - weblogic-user:
-                  description: Weblogic user
-              - weblogic-user-password:
-                  description: Weblogic user password
-              - weblogic-binary-url:
-                  description: Weblogic source URL
-              - jrokit-binary-url:
-                  description: JRokit source URL
-              - os:
-                  description: Operation System
-              - instance-size:
-                  description: Instance type
-              - recipe-url:
-                  description: Chefsolo recipe URL
-              - installation-dir:
-                  description: Bea_home path
-                  default: "/opt/middleware"
-              - tmp-dir:
-                  description: TMP dir path
-                  default: "/tmp"
             steps:
               - launch-vm:
                   action: provisionVms
@@ -84,28 +86,218 @@ application:
                     hardwareId: "{$.instance-size}"
                     imageId: "{$.os.image}"
                     vmIdentity: "{$.os.identity}"
-                    roleName: default
+                    jcloudsNodeNamePrefix: "{$.instance-prefix}"
+                    targetQuantity: 1
+                    roleName: "{$.os.type}"
+                    connectTimeout: 20 minutes
+                    providerSettings:
+                      userData:
+                        |
+                          <powershell>
+                              If (Test-Path "C:\cygwin64\bin\bash.exe") {{
+
+                              }} Else {{
+                                    If ((whoami).tolower().endswith("system")) {{
+                                          # Cygwin service management does not work properly when installed and used from SYSTEM user
+                                          # trying to elevate priveleges to Administrator by changing password
+                                          If (Test-Path "C:\pstools\PsExec.exe") {{
+                                                # already installed, skip
+                                          }} else {{
+                                                mkdir C:\pstools
+                                                (New-Object System.Net.WebClient).DownloadFile("http://download.sysinternals.com/files/PSTools.zip", "C:\pstools\PSTools.zip")
+                                                [System.Reflection.Assembly]::LoadWithPartialName('System.IO.Compression.FileSystem')
+                                                [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\pstools\PSTools.zip", "C:\pstools")
+                                          }}
+
+                                          $$password = "832d95C060"
+
+                                          # TODO: this assumes that administrator password will be reset by cloudbase-init later
+                                          NET USER ADMINISTRATOR $$password
+
+                                          $$arguments = @("-accepteula", "-u", "Administrator", "-p", $$password, "-h")
+                                          $$arguments = $$arguments + @("powershell") + $$myInvocation.MyCommand.Definition
+                                          Start-Process C:\pstools\psexec.exe -NoNewWindow -ArgumentList $$arguments
+                                          exit
+
+                                    }}
+
+                                    (New-Object System.Net.WebClient).DownloadFile("http://cygwin.com/setup-x86_64.exe", "setup-x86_64.exe")
+
+                                    .\setup-x86_64.exe --no-desktop --site '{$.mirror}' --quiet-mode --local-package-dir C:\cygwin64\local_packages --packages '{$.packages}' | Out-Null
+
+                                    C:\cygwin64\bin\bash.exe --login -c "cp /usr/bin/ps.exe /usr/bin/ps.exe~; cp /bin/ps.exe /bin/ps.exe~; cp /usr/bin/procps.exe /usr/bin/ps.exe; cp /usr/bin/procps.exe /bin/ps.exe"
+
+                                    # nearly 13.12.14 ssh-host-config bug was introduced in cygwin
+                                    # 1. root and Administrators groups are duplicated in /etc/group after installation
+                                    # 2. first ssh-host-config run fails because created cyg_server missing in /etc/passwd
+                                    # 3. sshd windows service has wrong user because of #2
+                                    Add-Type -Assembly System.Web
+                                    $$cyg_server_password_length = 15
+                                    $$cyg_server_password_non_alphanum = 5
+                                    $$cyg_server_password = [System.Web.Security.Membership]::GeneratePassword($$cyg_server_password_length, $$cyg_server_password_non_alphanum)
+                                    C:\cygwin64\bin\bash.exe --login -c "mkgroup > /etc/group"
+                                    C:\cygwin64\bin\bash.exe --login -c "ssh-host-config --yes --user cyg_server --pwd '$$cyg_server_password'"
+                                    C:\cygwin64\bin\bash.exe --login -c "mkpasswd > /etc/passwd"
+                                    C:\cygwin64\bin\bash.exe --login -c "cygrunsrv -R sshd"
+                                    C:\cygwin64\bin\bash.exe --login -c "ssh-host-config --yes --user cyg_server --pwd '$$cyg_server_password'"
+
+                                    # sshd 6.7 is too restrictive, reverting to 6.6 defaults
+                                    C:\cygwin64\bin\bash.exe --login -c "echo Ciphers aes128-ctr,aes192-ctr,aes256-ctr,arcfour256,arcfour128,aes128-cbc,3des-cbc,blowfish-cbc,cast128-cbc,aes192-cbc,aes256-cbc,arcfour >> /etc/sshd_config"
+                                    C:\cygwin64\bin\bash.exe --login -c "echo MACs hmac-md5,hmac-sha1,hmac-ripemd160,hmac-sha1-96,hmac-md5-96 >> /etc/sshd_config"
+                                    C:\cygwin64\bin\bash.exe --login -c "echo KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group14-sha1,diffie-hellman-group1-sha1,diffie-hellman-group-exchange-sha1 >> /etc/sshd_config"
+
+                                    netsh advfirewall firewall add rule name="CYGWIN sshd" dir=in action=allow program="C:\cygwin64\usr\sbin\sshd.exe" enable=yes
+                              }}
+
+                              C:\cygwin64\bin\bash.exe --login -c "mkdir -p ~/.undeploy.me"
+
+                              echo @'
+                              param(
+                              [string]$$chef_build = "10"  # 10.32.2-3 and 11.16.4-1 currently supported
+                              )
+                              # detect platform default and use ours
+                              if ($$chef_build -eq "10" -or $$chef_build -eq "10.16.2") {{
+                                  $$chef_build = "10.32.2-3"
+                              }} elseif ($$chef_build -eq "11") {{
+                                  $$chef_build = "11.16.4-1"
+                              }}
+                              If ((Test-Path "C:/opscode/chef/bin/chef-solo") -or ($$chefVersion -eq "")) {{
+                                  Write-Host "Chef already installed or chef build not specified, skipping installation..."
+                              }} Else {{
+                                  cd C:\
+                                  $$chef_version = $$chef_build.Split("-")[0]
+                                  $$chef_major_version = $$chef_build.Split(".")[0]
+                                  C:\cygwin64\bin\curl.exe -O "https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/x86_64/chef-windows-$${{chef_build}}.windows.msi"
+                                  Start-Process -FilePath msiexec -ArgumentList /i, "C:\chef-windows-$${{chef_build}}.windows.msi", /quiet, /qn -Wait
+                                  # supply chef original tar
+                                  C:/cygwin64/bin/sed -i "s|tar zxvf|C:/opscode/chef/bin/tar zxvf|"  C:/opscode/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-$${{chef_version}}-x86-mingw32/lib/chef/application/solo.rb
+                                  if ($$chef_major_version -eq "11") {{
+                                      # fix chef bug
+                                      C:/cygwin64/bin/sed -i "s/status.exitstatus/0/g"                   C:/opscode/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-$${{chef_version}}-x86-mingw32/lib/chef/mixin/command.rb
+                                  }}
+
+                                  C:\cygwin64\bin\bash.exe --login -c "mkdir ~/bin"
+
+                                  C:\cygwin64\bin\bash.exe --login -c "cat > ~/bin/shef <<'EEND'
+                          #!/usr/bin/bash --login
+                          /cygdrive/c/opscode/chef/embedded/bin/ruby.exe C:/opscode/chef/bin/shef `$$*
+                          EEND
+                          chmod +x ~/bin/shef
+                          "
+
+                                  C:\cygwin64\bin\bash.exe --login -c "cat > ~/bin/chef-client <<'EEND'
+                          #!/usr/bin/bash --login
+                          /cygdrive/c/opscode/chef/embedded/bin/ruby.exe C:/opscode/chef/bin/chef-client `$$*
+                          EEND
+                          chmod +x ~/bin/chef-client
+                          "
+
+                                  C:\cygwin64\bin\bash.exe --login -c "cat > ~/bin/chef-solo <<'EEND'
+                          #!/usr/bin/bash --login
+
+                          CONFIG_PATH=
+                          OTHER_ARGS=
+                          while [ \`"x`$$1\`" != x ]; do
+                              if [ \`"`$$1\`" == -c ]; then
+                                  shift;
+                                  CONFIG_PATH=\`"`$$1\`"
+                                  shift;
+                              else
+                                  OTHER_ARGS=\`"`$$OTHER_ARGS `$$1\`"
+                                  shift;
+                              fi
+                          done
+
+                          FILE_CACHE=`$$(grep file_cache_path `$$CONFIG_PATH | awk '{{print `$$2}}' | sed -re 's/\x22(.*)\x22/\1/')
+                          COOKBOOKS=`$$(grep cookbook_path `$$CONFIG_PATH | awk '{{print `$$2}}' | sed -re 's/.*\x22(.*)\x22.*/\1/')
+                          QUBELL_COOKBOOKS=`$$(grep cookbook_path `$$CONFIG_PATH | awk '{{print `$$3}}' | sed -re 's/.*\x22(.*)\x22.*/\1/')
+                          ROLES=`$$(grep role_path `$$CONFIG_PATH | awk '{{print `$$2}}' | sed -re 's/.*\x22(.*)\x22.*/\1/')
+                          DATA_BAGS=`$$(grep data_bag_path `$$CONFIG_PATH | awk '{{print `$$2}}' | sed -re 's/.*\x22(.*)\x22.*/\1/')
+                          NODE_PATH=`$$(grep node_path `$$CONFIG_PATH | awk '{{print `$$2}}' | sed -re 's/.*\x22(.*)\x22.*/\1/')
+                          NODE_NAME=`$$(grep node_name `$$CONFIG_PATH | awk '{{print `$$2}}' | sed -re 's/.*\x22(.*)\x22.*/\1/')
+                          NEW_ROOT=`$$(mktemp -d)
+                          # platform homedir detection behaves wrong in some cases, so we should detect and fix it
+                          if echo `$$NODE_PATH | grep -E '^.?\.undeploy.me' >/dev/null 2>/dev/null; then
+                              ROOT_FIX=`$$(cygpath -m `$$HOME)/
+                              OLD_ROOT=`$$ROOT_FIX
+                          else
+                              ROOT_FIX=''
+                              OLD_ROOT=`$$FILE_CACHE
+                          fi
+                          pushd `$$OLD_ROOT
+                          icacls . /save access.txt
+                          icacls `$$(cygpath -m `$$NEW_ROOT) /restore access.txt
+                          popd
+                          cp -r `$$ROOT_FIX`$$COOKBOOKS `$$NEW_ROOT/cookbooks 2>/dev/null
+                          cp -r `$$ROOT_FIX`$$QUBELL_COOKBOOKS `$$NEW_ROOT/qubell_cookbooks 2>/dev/null
+                          cp -r `$$ROOT_FIX`$$DATA_BAGS `$$NEW_ROOT/data_bags 2>/dev/null
+                          cp -r `$$ROOT_FIX`$$ROLES `$$NEW_ROOT/roles 2>/dev/null
+                          cd ~
+                          NODE_PATH_FIX=`$$(echo `$$NODE_PATH | cut -c 2-)
+                          mkdir -p `$$NODE_PATH_FIX
+                          chmod 0755 `$$NODE_PATH_FIX
+                          chmod 0755 `$$NODE_PATH_FIX/`$$NODE_NAME.json
+                          chmod 0755 `$$ROOT_FIX`$$NODE_PATH_FIX
+                          chmod 0755 `$$ROOT_FIX`$$NODE_PATH_FIX/`$$NODE_NAME.json
+                          cat `$$CONFIG_PATH | sed -re \`"s|`$$COOKBOOKS|`$$(cygpath -m `$$NEW_ROOT/cookbooks)|;s|`$$QUBELL_COOKBOOKS|`$$(cygpath -m `$$NEW_ROOT/qubell_cookbooks)|;s|`$$DATA_BAGS|`$$(cygpath -m `$$NEW_ROOT/data_bags)|;s|`$$ROLES|`$$(cygpath -m `$$NEW_ROOT/roles)|;s|`$$NODE_PATH|`$$ROOT_FIX`$$NODE_PATH_FIX|;s|\x22`$$FILE_CACHE\x22|\x22`$$(cygpath -m `$$NEW_ROOT)\x22|;\`" > `$$NEW_ROOT/client.rb
+
+                          /cygdrive/c/opscode/chef/embedded/bin/ruby.exe C:/opscode/chef/bin/chef-solo -c `$$(cygpath -m `$$NEW_ROOT/client.rb) `$$OTHER_ARGS
+                          EEND
+                          chmod +x ~/bin/chef-solo
+                          "
+
+                                  C:\cygwin64\bin\bash.exe --login -c "cat > ~/.bashrc <<'EEND'
+                          export LC_ALL=C
+                          export LANG=C
+                          export PATH=~/bin:`$$PATH
+                          EEND
+                          "
+
+                              }}
+
+                          '@ | Out-File $$(C:\cygwin64\bin\bash.exe --login -c "cygpath -w ~/.undeploy.me/chef-install.ps1")
+
+                              C:\cygwin64\bin\bash.exe --login -c "mkdir ~/.ssh"
+                              $$drive = (Get-Volume -FileSystemLabel config-2 | % {{ $$_.DriveLetter }})
+                              If (Test-Path "$${{drive}}:\openstack\") {{
+                                  C:\cygwin64\bin\bash.exe --login -c "grep ssh-rsa `$$(find `$$(find /cygdrive -maxdepth 2 -name openstack -or -name ec2) -name 'meta?data.json') | sed -re 's/.*(ssh-rsa [a-zA-Z0-9+/=]+).*/\1/' | uniq >> ~/.ssh/authorized_keys"
+                              }} Else {{
+                                  C:\cygwin64\bin\bash.exe --login -c "curl --connect-timeout 5 169.254.169.254/latest/meta-data/public-keys/0/openssh-key >> ~/.ssh/authorized_keys"
+                              }}
+
+                              net start sshd
+                          </powershell>
                   output:
                     wl-hosts: ips
 
               - mount-storage:
                   action: execrun
+                  phase: service
                   precedingPhases: [launch-vm]
                   parameters:
-                    roles: [ default ]
+                    roles: [ linux ]
                     isSudo: true
                     command:
                       - |
-                        mkdir -p /opt
-                        mount | grep /opt || mount `curl -s http://169.254.169.254/latest/meta-data/block-device-mapping/ephemeral0 | tr 'a-d' 'e-h' | sed 's#^..#/dev/sd#'` /opt
+                        mkdir -p /media/ephemeral0
+                        mount | grep /media/ephemeral0 || mount `curl -s http://169.254.169.254/latest/meta-data/block-device-mapping/ephemeral0 | tr 'a-d' 'e-h' | sed 's#^..#/dev/xvd#'` /media/ephemeral0
 
-              - set-hostname:
+              - change-admin-password:
                   action: execrun
-                  phase: set-hostname
-                  precedingPhases: [ mount-storage ]
+                  phase: service
+                  precedingPhases: [launch-vm]
                   parameters:
-                    roles: [ default ]
-                    isSudo: true
+                    roles: [ windows ]
+                    isSudo: false
+                    command:
+                      - "NET USER ADMINISTRATOR {$.windows-password}"
+
+              - get-hostname:
+                  action: execrun
+                  precedingPhases: [ service ]
+                  parameters:
+                    roles: [ "{$.os.type}" ]
+                    isSudo: false
                     command:
                       - curl -s http://169.254.169.254/latest/meta-data/public-hostname
                   output:
@@ -113,22 +305,23 @@ application:
 
               - install-weblogic:
                   action: chefsolo
-                  precedingPhases: [set-hostname]
+                  precedingPhases: [get-hostname]
                   parameters:
-                    roles: [default]
+                    isSudo: false
+                    roles: [ "{$.os.type}" ]
                     recipeUrl: "{$.recipe-url}"
                     runList: ["recipe[weblogic::default]"]
+                    version: 11.16.4-1
                     jattrs:
                       weblogic:
                         user: "{$.weblogic-user}"
                         password: "{$.weblogic-user-password}"
                         binary_url: "{$.weblogic-binary-url}"
-                        bea_home: "{$.installation-dir}"
-                        tmp_path: "{$.tmp-dir}"
                       jrockit:
                         binary_url: "{$.jrokit-binary-url}"
-                        bea_home: "{$.installation-dir}"
-                        tmp_path: "{$.tmp-dir}"
+                      java:
+                        windows:
+                          url: "{$.java-binary-url}"
 
             return:
               wl-hosts: 
